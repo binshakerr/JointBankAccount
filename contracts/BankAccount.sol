@@ -7,7 +7,7 @@ contract BankAccount {
         address indexed user,
         uint256 indexed accountId,
         uint256 value,
-        unit256 timestamp
+        uint256 timestamp
     )
 
     event RequestWithdraw(
@@ -15,7 +15,7 @@ contract BankAccount {
         uint256 indexed accountId,
         uint256 indexed withdrawId,
         uint256 amount,
-        unit256 timestamp
+        uint256 timestamp
     )
 
     event Withdraw(
