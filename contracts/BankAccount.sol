@@ -73,6 +73,28 @@ contract BankAccount {
         _;
     }
 
+    modifier canApprove(uint accountId, uint withdrawId) {
+        require(
+            !accounts[accountId].withdrawRequests[withdrawId].approved,
+            "this request is already approved"
+        );
+        require(
+            !accounts[accountId].withdrawRequests[withdrawId].ownersApproved[
+                msg.sender
+            ],
+            "you have already approved this request"
+        );
+        require(
+            accounts[accountId].withdrawRequests[withdrawId].user != msg.sender,
+            "you cannot approve this request"
+        );
+        require(
+            accounts[accountId].withdrawRequests[withdrawId].user != address(0),
+            "this request doesnt exist"
+        );
+        _;
+    }
+
     //MARK: - Functions
     function deposit(uint accountId) external payable accountOwner(accountId) {
         accounts[accountId].balance += msg.value;
@@ -117,7 +139,20 @@ contract BankAccount {
         );
     }
 
-    function approveWithdrawal(uint accountId, uint withdrawId) external {}
+    function approveWithdrawal(
+        uint accountId,
+        uint withdrawId
+    ) external canApprove(accountId, withdrawId) {
+        WithdrawRequest storage request = accounts[accountId].withdrawRequests[
+            withdrawId
+        ];
+        request.approvals++;
+        request.ownersApproved[msg.sender] = true;
+
+        if (request.approvals == accounts[accountId].owners.length - 1) {
+            request.approved = true;
+        }
+    }
 
     function withdraw(uint accountId, uint withdrawId) external {}
 
