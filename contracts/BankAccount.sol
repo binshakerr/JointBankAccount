@@ -86,11 +86,23 @@ contract BankAccount {
         );
         require(
             accounts[accountId].withdrawRequests[withdrawId].user != msg.sender,
-            "you cannot approve this request"
+            "you can't approve this request"
         );
         require(
             accounts[accountId].withdrawRequests[withdrawId].user != address(0),
-            "this request doesnt exist"
+            "this request doesn't exist"
+        );
+        _;
+    }
+
+    modifier canWithdraw(uint accountId, uint withdrawId) {
+        require(
+            accounts[accountId].withdrawRequests[withdrawId].user == msg.sender,
+            "you didn't send this request"
+        );
+        require(
+            accounts[accountId].withdrawRequests[withdrawId].approved,
+            "this request is not approved"
         );
         _;
     }
@@ -154,7 +166,21 @@ contract BankAccount {
         }
     }
 
-    function withdraw(uint accountId, uint withdrawId) external {}
+    function withdraw(
+        uint accountId,
+        uint withdrawId
+    ) external canWithdraw(accountId, withdrawId) {
+        uint amount = accounts[accountId].withdrawRequests[withdrawId].amount;
+        require(accounts[accountId].balance >= amount, "insufficient balance");
+
+        accounts[accountId].balance -= amount;
+        delete accounts[accountId].withdrawRequests[withdrawId];
+
+        (bool sent, ) = payable(msg.sender).call{value: amount}("");
+        require(sent);
+
+        emit Withdraw(withdrawId, block.timestamp);
+    }
 
     function getBalance(uint accountId) public view returns (uint) {}
 
