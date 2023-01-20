@@ -182,14 +182,22 @@ contract BankAccount {
         emit Withdraw(withdrawId, block.timestamp);
     }
 
-    function getBalance(uint accountId) public view returns (uint) {}
+    function getBalance(uint accountId) public view returns (uint) {
+        return accounts[accountId].balance;
+    }
 
-    function getOwners(uint accountId) public view returns (address[] memory) {}
+    function getOwners(uint accountId) public view returns (address[] memory) {
+        return accounts[accountId].owners;
+    }
 
     function getApprovals(
         uint accountId,
         uint withdrawId
-    ) public view returns (uint) {}
+    ) public view returns (uint) {
+        return accounts[accountId].withdrawRequests[withdrawId].approvals;
+    }
 
-    function getAccounts() public view returns (uint[] memory) {}
+    function getAccounts() public view returns (uint[] memory) {
+        return userAccounts[msg.sender];
+    }
 }
