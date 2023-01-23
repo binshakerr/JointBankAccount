@@ -17,7 +17,7 @@ describe("BankAccount", () => {
   ) {
     const { bankAccount, addr0, addr1, addr2, addr3, addr4 } =
       await loadFixture(deployBankAccount);
-    const addresses = [];
+    let addresses = [];
     if (owners == 2) {
       addresses = [addr1.address];
     } else if (owners == 3) {
@@ -170,7 +170,85 @@ describe("BankAccount", () => {
         await bankAccount.connect(addr0).requestWithdrawal(0, 10);
       });
     });
-    describe("Approve withdraw", () => {});
-    describe("withdraw", () => {});
+
+    describe("Approve withdraw", () => {
+      it("should allow account owner to approve requests", async () => {
+        const { bankAccount, addr1 } = await deployBankAccountWithAccounts(
+          2,
+          100,
+          [100]
+        );
+        await bankAccount.connect(addr1).approveWithdrawal(0, 0);
+        expect(await bankAccount.getApprovals(0, 0)).to.equal(1);
+      });
+
+      it("shouldn't allow non-account owner to approve requests", async () => {
+        const { bankAccount, addr2 } = await deployBankAccountWithAccounts(
+          2,
+          100,
+          [100]
+        );
+        await expect(bankAccount.connect(addr2).approveWithdrawal(0, 0)).to.be
+          .reverted;
+      });
+
+      it("shouldn't allow account owner to approve multiple requests", async () => {
+        const { bankAccount, addr1 } = await deployBankAccountWithAccounts(
+          2,
+          100,
+          [100]
+        );
+        await bankAccount.connect(addr1).approveWithdrawal(0, 0);
+        await expect(bankAccount.connect(addr1).approveWithdrawal(0, 0)).to.be
+          .reverted;
+      });
+
+      it("shouldn't allow request creator to approve own request", async () => {
+        const { bankAccount, addr0 } = await deployBankAccountWithAccounts(
+          2,
+          100,
+          [100]
+        );
+        await expect(bankAccount.connect(addr0).approveWithdrawal(0, 0)).to.be
+          .reverted;
+      });
+    });
+
+    describe("withdraw", () => {
+      it("should allow creator of request to withdraw approved request", async () => {
+        const { bankAccount, addr0, addr1 } =
+          await deployBankAccountWithAccounts(2, 100, [100]);
+        await bankAccount.connect(addr1).approveWithdrawal(0, 0);
+        await expect(
+          bankAccount.connect(addr0).withdraw(0, 0)
+        ).to.changeEtherBalances([bankAccount, addr0], ["-100", "100"]);
+      });
+      it("shouldn't allow creator of request to withdraw approved request twice", async () => {
+        const { bankAccount, addr0, addr1 } =
+          await deployBankAccountWithAccounts(2, 200, [100]);
+        await bankAccount.connect(addr1).approveWithdrawal(0, 0);
+        await expect(
+          bankAccount.connect(addr0).withdraw(0, 0)
+        ).to.changeEtherBalances([bankAccount, addr0], ["-100", "100"]);
+        await expect(bankAccount.connect(addr0).withdraw(0, 0)).to.be.reverted;
+      });
+      it("shouldn't allow non-creator of request to withdraw approved request", async () => {
+        const { bankAccount, addr1 } = await deployBankAccountWithAccounts(
+          2,
+          200,
+          [100]
+        );
+        await bankAccount.connect(addr1).approveWithdrawal(0, 0);
+        await expect(bankAccount.connect(addr1).withdraw(0, 0)).to.be.reverted;
+      });
+      it("shouldn't allow creator of request to withdraw non-approved request", async () => {
+        const { bankAccount, addr0 } = await deployBankAccountWithAccounts(
+          2,
+          200,
+          [100]
+        );
+        await expect(bankAccount.connect(addr0).withdraw(0, 0)).to.be.reverted;
+      });
+    });
   });
 });
